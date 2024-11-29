@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
+import 'dart:typed_data';
 
 class AdvancedForm extends StatefulWidget {
   const AdvancedForm({super.key});
@@ -18,44 +19,38 @@ class _AdvancedFormState extends State<AdvancedForm> {
   DateTime _dueDate = DateTime.now();
   final currentDate = DateTime.now();
   Color _currentColor = const Color.fromARGB(255, 255, 153, 0);
-  //menambahkan variabel 
+  //menambahkan variabel
   String? _dataFile;
   File? _imageFile;
+  Uint8List? _imageBytes; // Untuk menyimpan byte dari gambar
 
+  //method pick file
+  void _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
 
+    if (result != null) {
+      final file = result.files.first;
 
- //method pick file 
- void _pickFile() async{
-  final result = await FilePicker.platform.pickFiles();
-  if (result == null) return;
+      // Jika file adalah gambar, gunakan bytes
+      if (file.extension == 'jpg' ||
+          file.extension == 'png' ||
+          file.extension == 'jpeg') {
+        setState(() {
+          _imageBytes = file.bytes; // Simpan bytes dari file
+        });
+      }
 
-  //mendapat file dari object result
-  final file = result.files.first;
-  
-
-  //mengecek apakah file yang dipilih adalah gambar 
-  if( file.extension == 'jpg' || 
-    file.extension == 'png' || 
-    file.extension == 'jpeg') {
-
-    setState(() {
-      _imageFile = File(file.path!); //mengambil file gambar
-    });
+      // Simpan nama file untuk ditampilkan
+      setState(() {
+        _dataFile = file.name;
+      });
+    }
   }
-  
 
-  //memanggil setsate untuk memperbaharui tampilan ui
-  setState(() {
-    //memanggil nilai _datafile dengan nama file yang dipilih.
-    _dataFile = file.name;
-  });
-
-  _openFile(file);
- }
-// method buat open file 
- void _openFile(PlatformFile file){
-  OpenFile.open(file.path);
- }
+// method buat open file
+  void _openFile(PlatformFile file) {
+    OpenFile.open(file.path);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +75,7 @@ class _AdvancedFormState extends State<AdvancedForm> {
   }
 
   //untuk method date picker
-  Widget buildDatePicker(BuildContext context){
+  Widget buildDatePicker(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -89,30 +84,30 @@ class _AdvancedFormState extends State<AdvancedForm> {
           children: [
             const Text('Date'),
             TextButton(
-              child: const Text('Select'),
-              onPressed: () async {
-                final selectDate = await showDatePicker(
-                  context: context, 
-                  firstDate: DateTime(1990), //tanggal pertama yang dapat dipilih adalah tahun 1990
-                  lastDate: DateTime(currentDate.year +5), //tanggal terakhir tahun ini di tambah 5 tahun kedepan 
-                  
-                );
-                setState(() {
-                  if (selectDate != null){
-                    _dueDate = selectDate;
-                  }
-                 });
-              } 
-            ),
+                child: const Text('Select'),
+                onPressed: () async {
+                  final selectDate = await showDatePicker(
+                    context: context,
+                    firstDate: DateTime(
+                        1990), //tanggal pertama yang dapat dipilih adalah tahun 1990
+                    lastDate: DateTime(currentDate.year +
+                        5), //tanggal terakhir tahun ini di tambah 5 tahun kedepan
+                  );
+                  setState(() {
+                    if (selectDate != null) {
+                      _dueDate = selectDate;
+                    }
+                  });
+                }),
           ],
         ),
         Text(DateFormat('dd-MM-yyyy').format(_dueDate))
       ],
     );
   }
-  
-  //method untuk color picker 
-  Widget buildColorPicker(BuildContext context){
+
+  //method untuk color picker
+  Widget buildColorPicker(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,33 +126,32 @@ class _AdvancedFormState extends State<AdvancedForm> {
             ),
             onPressed: () {
               showDialog(
-              context: context, 
-              builder: (context){
-                return AlertDialog(
-                  title: const Text('Pick your color'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      BlockPicker(
-                        pickerColor: _currentColor, 
-                        onColorChanged: (color) {
-                          setState(() {
-                            _currentColor = color;
-                          });
-                        }),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        return Navigator.of(context).pop();
-                      },
-                      child: const Text('Save'),
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('Pick your color'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          BlockPicker(
+                              pickerColor: _currentColor,
+                              onColorChanged: (color) {
+                                setState(() {
+                                  _currentColor = color;
+                                });
+                              }),
+                        ],
                       ),
-                  ],
-                );
-
-              });
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            return Navigator.of(context).pop();
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    );
+                  });
             },
             child: const Text('Pick Color'),
           ),
@@ -165,34 +159,32 @@ class _AdvancedFormState extends State<AdvancedForm> {
       ],
     );
   }
- 
- //build file picker 
- Widget buildFilePicker(BuildContext context){
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text('Pick file'),
-      const SizedBox(height: 10),
-      Center(
-        child: ElevatedButton(
-          onPressed: () {
-            _pickFile();
-          }, 
-          child: const Text('Pick and open file'),
-        ),
-      ),
-      if (_dataFile != null) Text('File Name: $_dataFile'),
-      const SizedBox(height: 10),
-      //menampilkan gambar 
-      if (_imageFile != null)
-      Image.file(
-        _imageFile!,
-        height: 100,//ukuran gambar
-        width: double.infinity,
-        fit: BoxFit.cover,
-      )
-    ],
-  );
- }
 
+  //build file picker
+  Widget buildFilePicker(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Pick file'),
+        const SizedBox(height: 10),
+        Center(
+          child: ElevatedButton(
+            onPressed: () {
+              _pickFile();
+            },
+            child: const Text('Pick and open file'),
+          ),
+        ),
+        if (_dataFile != null) Text('File Name: $_dataFile'),
+        const SizedBox(height: 10),
+        if (_imageBytes != null)
+          Image.memory(
+            _imageBytes!,
+            height: 200,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          )
+      ],
+    );
+  }
 }
